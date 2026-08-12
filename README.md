@@ -1,27 +1,107 @@
-# ETL PIPELINE FOR BILLBOARD TOP 10
+# Billboard Hot 100 Music Metrics ETL
 
-Extraction: 
+This project builds a weekly `song_week_stats` dataset from:
 
-Using API from Billboard, pull the list of 100 artist, title , position and isNew. 
+1. Billboard Hot 100 chart rows
+2. YouTube search/video statistics for each charting song
+3. Genius song metadata for each charting song
+4. A MySQL load step for the final normalized table
 
-Using that artist and title using that information as dynamic parameters to get metrics from Youtube and Genius api 
+The intended grain is one row per song per Billboard chart week.
 
-PS: extraction can be orchastrated by a cron job before Billboard drops top 100 for the new week.
+## Output Columns
 
-Transform & Clean :
-Using pandas to assemble a table titled: 
-song-week stats 
-columns of table
-1) title
-2) views
-3) comments 
-4) likes
-5) dislikes
-6) popularity 
-7) list of events
-8) artist 
-9) position
-10) isNew
+The final dataframe and MySQL table include:
 
-Load:
-Connect to an mySQL database and load song-week stats
+- `chart_date`
+- `rank`
+- `title`
+- `artist`
+- `last_rank`
+- `peak_rank`
+- `weeks`
+- `is_new`
+- `youtube_video_id`
+- `youtube_title`
+- `youtube_channel`
+- `youtube_published_at`
+- `youtube_views`
+- `youtube_likes`
+- `youtube_comments`
+- `youtube_search_query`
+- `genius_song_id`
+- `genius_pageviews`
+- `genius_annotation_count`
+- `genius_url`
+
+## Environment Variables
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Required for YouTube enrichment:
+
+```bash
+export YOUTUBE_API_KEY="your-youtube-data-api-key"
+```
+
+If you do not have an API key, the script can fall back to OAuth:
+
+```bash
+export CLIENT_SECRET_PATH="/path/to/client_secret.json"
+```
+
+Required for Genius enrichment:
+
+```bash
+export GENIUS_ACCESS_TOKEN="your-genius-access-token"
+```
+
+Required for MySQL loading:
+
+```bash
+export MYSQL_URL="mysql+pymysql://user:password@localhost:3306/database_name"
+```
+
+Optional:
+
+```bash
+export BILLBOARD_CHART="hot-100"
+export OUTPUT_DIR="output"
+```
+
+## Run It
+
+For a small API test without loading MySQL:
+
+```bash
+python etl_pipeline.py --limit 5 --skip-load
+```
+
+For a full run and MySQL load:
+
+```bash
+python etl_pipeline.py
+```
+
+For chart-only development:
+
+```bash
+python etl_pipeline.py --limit 10 --skip-youtube --skip-genius --skip-load
+```
+
+## Files
+
+- `etl_pipeline.py`: orchestration entrypoint
+- `etl/billboard_client.py`: Billboard chart extraction
+- `etl/youtube_client.py`: YouTube search and video statistics
+- `etl/genius_client.py`: Genius song metadata
+- `etl/transform.py`: final `song_week_stats` dataframe assembly
+- `etl/loader.py`: MySQL load via pandas and SQLAlchemy
+
+## Notes
+
+YouTube dislikes are intentionally omitted because public dislike counts are not exposed through the normal YouTube Data API. The pipeline stores `youtube_search_query` so you can inspect matching quality later. That matters because the hardest part of this project is not collecting API responses; it is making sure each Billboard song is matched to the correct YouTube video and Genius song page.

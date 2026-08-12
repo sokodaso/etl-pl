@@ -1,0 +1,7 @@
+billboard.py
+google-api-python-client
+google-auth-oauthlib
+lyricsgenius
+pandas
+PyMySQL
+SQLAlchemy
