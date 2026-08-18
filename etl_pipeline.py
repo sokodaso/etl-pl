@@ -64,13 +64,21 @@ def enrich_youtube(chart_rows: list[dict], settings, output_dir: Path, skip: boo
     # Check for cached YouTube enrichment to avoid repeated API calls during development
     cache_path = output_dir / "youtube_enrichment.json"
     if cache_path.exists():
-        print(f"Loading cached YouTube enrichment from {cache_path}.")
-        enriched_rows = json.loads(cache_path.read_text(encoding="utf-8"))
-    else:
-        for row in chart_rows:
+        try:
+            cached_data = json.loads(cache_path.read_text(encoding="utf-8"))
+            cache = {(_song_key(row)["artist"], _song_key(row)["title"]): row for row in cached_data}
+        except json.JSONDecodeError:
+            print(f"Warning: Failed to decode cached YouTube enrichment from {cache_path}.")
+   
+    for row in chart_rows:
+        lookup_key = (_song_key(row)["artist"], _song_key(row)["title"])
+        if cache_path.exists() and lookup_key in cache:
+            enriched_rows.append(cache[lookup_key])
+        else:
             print(f"YouTube: {row['artist']} - {row['title']}")
             metadata = search_top_video(youtube, row["artist"], row["title"]) or {}
             enriched_rows.append({**_song_key(row), **metadata})
+            cache[lookup_key] = enriched_rows[-1]
 
     _write_json(enriched_rows, output_dir / "youtube_enrichment.json")
     return enriched_rows
@@ -86,13 +94,20 @@ def enrich_genius(chart_rows: list[dict], settings, output_dir: Path, skip: bool
     # Cache Genius enrichment to avoid repeated API calls during development
     cache_path = output_dir / "genius_enrichment.json"
     if cache_path.exists():
-        print(f"Loading cached Genius enrichment from {cache_path}.")
-        enriched_rows = json.loads(cache_path.read_text(encoding="utf-8"))
-    else:
-        for row in chart_rows:
+        try:
+            cached_data = json.loads(cache_path.read_text(encoding="utf-8"))
+            cache = {(_song_key(row)["artist"], _song_key(row)["title"]): row for row in cached_data}
+        except json.JSONDecodeError:
+            print(f"Warning: Failed to decode cached Genius enrichment from {cache_path}.")
+    for row in chart_rows:
+        lookup_key = (_song_key(row)["artist"], _song_key(row)["title"])
+        if cache_path.exists() and lookup_key in cache:
+            enriched_rows.append(cache[lookup_key])
+        else:
             print(f"Genius: {row['artist']} - {row['title']}")
             metadata = search_song_metadata(genius, row["artist"], row["title"]) or {}
             enriched_rows.append({**_song_key(row), **metadata})
+            cache[lookup_key] = enriched_rows[-1]
 
     _write_json(enriched_rows, output_dir / "genius_enrichment.json")
     return enriched_rows

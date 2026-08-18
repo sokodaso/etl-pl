@@ -101,7 +101,3 @@ python etl_pipeline.py --limit 10 --skip-youtube --skip-genius --skip-load
 - `etl/genius_client.py`: Genius song metadata
 - `etl/transform.py`: final `song_week_stats` dataframe assembly
 - `etl/loader.py`: MySQL load via pandas and SQLAlchemy
-
-## Notes
-
-YouTube dislikes are intentionally omitted because public dislike counts are not exposed through the normal YouTube Data API. The pipeline stores `youtube_search_query` so you can inspect matching quality later. That matters because the hardest part of this project is not collecting API responses; it is making sure each Billboard song is matched to the correct YouTube video and Genius song page.

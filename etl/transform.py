@@ -34,7 +34,7 @@ GENIUS_COLUMNS = [
     "genius_url",
 ]
 
-KEY_COLUMNS = ["chart_date", "rank", "title", "artist"]
+KEY_COLUMNS = ["title", "artist"]
 
 
 def build_song_week_stats(
@@ -46,6 +46,7 @@ def build_song_week_stats(
     youtube_df = pd.DataFrame(youtube_rows)
     genius_df = pd.DataFrame(genius_rows)
 
+    
     for dataframe in (youtube_df, genius_df):
         for column in KEY_COLUMNS:
             if column not in dataframe.columns:
@@ -67,6 +68,7 @@ def build_song_week_stats(
     df["youtube_published_at"] = pd.to_datetime(df["youtube_published_at"], errors="coerce", utc=True)
     df["is_new"] = df["is_new"].astype(bool)
 
+    print(df[["chart_date", "rank", "title", "artist", "youtube_video_id", "genius_song_id", "youtube_title", "genius_pageviews"]].head(5))
     return df[
         CHART_COLUMNS
         + YOUTUBE_COLUMNS
