@@ -102,6 +102,7 @@ preprocessor = ColumnTransformer([
 
 X_processed = preprocessor.fit_transform(X)
 
+'''
 #metrics for evaluating the model (k means)
 kmeans_results = []
 
@@ -145,6 +146,106 @@ kmeans_labels = kmeans.fit_predict(X_processed)
 
 df["kmeans_cluster"] = kmeans_labels
 
-#inspect results 
+#inspect k means results 
 print("\nKMeans Cluster Counts:")
 print(df["kmeans_cluster"].value_counts().sort_index())
+'''
+
+#dbscan 
+dbscan_results = []
+
+for eps in np.arange(0.3, 2.1, 0.1):
+    dbscan = DBSCAN(
+        eps=eps,
+        min_samples=5
+    )
+
+    labels = dbscan.fit_predict(X_processed)
+
+    #Number of actual clusters excluding noise
+    unique_labels = set(labels)
+
+    n_clusters = len( unique_labels - {-1})
+
+    n_noise = list(labels).count(-1)
+
+    #Silhouette requires atleast 2 clusters
+    if n_clusters >= 2:
+
+        #Ignore noise when calculating clustering metrics
+        mask = labels != -1
+
+        silhouette = silhouette_score(
+            X_processed[mask],
+            labels[mask]
+        )
+
+        davies_bouldin = davies_bouldin_score(
+            X_processed[mask],
+            labels[mask]
+        )
+
+        calinski_harabasz = calinski_harabasz_score(
+            X_processed[mask],
+            labels[mask]
+        )
+    else:
+        silhouette = np.nan
+        davies_bouldin = np.nan
+        calinski_harabasz = np.nan
+
+    dbscan_results.append({
+        "eps": eps,
+        "min_samples": 5,
+        "clusters": n_clusters,
+        "noise_points" : n_noise,
+        "silhouette": silhouette,
+        "davies_bouldin" : davies_bouldin,
+        "calinski_harabasz": calinski_harabasz
+    })
+
+dbscan_results = pd.DataFrame(dbscan_results)
+print(dbscan_results)
+
+#select dbscan parameters
+valid_dbscan = dbscan_results.dropna(
+    subset=["silhouette"]
+)
+
+if not valid_dbscan.empty:
+    best_dbscan = valid_dbscan.loc[
+        valid_dbscan["silhouette"].idxmax()
+    ]
+
+    best_eps = best_dbscan["eps"]
+    best_min_samples = int(
+        best_dbscan["min_samples"]
+    )
+
+    print(
+         f"\nBest DBSCAN parameters: "
+        f"eps={best_eps}, "
+        f"min_samples={best_min_samples}"
+    )
+
+#final dbscan 
+dbscan = DBSCAN(
+    eps = best_eps,
+    min_samples= best_min_samples
+)
+
+dbscan_labels = dbscan.fit_predict(
+    X_processed
+)
+
+df["dbcsan_cluster"] = dbscan_labels
+
+#inspect final db results 
+if "dbscan_cluster" in df.columns:
+
+    print("\nDBSCAN Cluster Counts:")
+    print(
+        df["dbscan_cluster"]
+        .value_counts()
+        .sort_index()
+    )
