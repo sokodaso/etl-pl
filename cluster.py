@@ -8,6 +8,9 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.cluster import DBSCAN
 from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
+from sklearn.neighbors import NearestNeighbors
+import matplotlib.pyplot as plt 
 from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
 
 #Load the dataset from MySQL database using SQLAlchemy
@@ -102,16 +105,18 @@ preprocessor = ColumnTransformer([
 
 X_processed = preprocessor.fit_transform(X)
 
-'''
+pca = PCA(n_components=6)
+X_pca = pca.fit_transform(X_processed)
+
 #metrics for evaluating the model (k means)
 kmeans_results = []
 
 for k in range(2, 11):
     kmeans = KMeans(n_clusters=k, random_state=42)
-    labels = kmeans.fit_predict(X_processed)
-    silhouette_avg = silhouette_score(X_processed, labels)
-    davies_bouldin_avg = davies_bouldin_score(X_processed, labels)
-    calinski_harabasz_avg = calinski_harabasz_score(X_processed, labels)
+    labels = kmeans.fit_predict(X_pca)
+    silhouette_avg = silhouette_score(X_pca, labels)
+    davies_bouldin_avg = davies_bouldin_score(X_pca, labels)
+    calinski_harabasz_avg = calinski_harabasz_score(X_pca, labels)
     
     kmeans_results.append({
         "k": k,
@@ -142,25 +147,25 @@ kmeans = KMeans(
     n_init=20
 )
 
-kmeans_labels = kmeans.fit_predict(X_processed)
+kmeans_labels = kmeans.fit_predict(X_pca)
 
 df["kmeans_cluster"] = kmeans_labels
 
 #inspect k means results 
 print("\nKMeans Cluster Counts:")
 print(df["kmeans_cluster"].value_counts().sort_index())
-'''
+
 
 #dbscan 
 dbscan_results = []
 
-for eps in np.arange(0.3, 2.1, 0.1):
+for eps in np.arange(0.5,2.5,0.05):
     dbscan = DBSCAN(
         eps=eps,
         min_samples=5
     )
 
-    labels = dbscan.fit_predict(X_processed)
+    labels = dbscan.fit_predict(X_pca)
 
     #Number of actual clusters excluding noise
     unique_labels = set(labels)
@@ -169,24 +174,24 @@ for eps in np.arange(0.3, 2.1, 0.1):
 
     n_noise = list(labels).count(-1)
 
-    #Silhouette requires atleast 2 clusters
-    if n_clusters >= 2:
+    #Ignore noise when calculating clustering metrics
+    mask = labels != -1
 
-        #Ignore noise when calculating clustering metrics
-        mask = labels != -1
+    #Silhouette requires atleast 2 clusters
+    if n_clusters >= 2 and mask.sum() > n_clusters:
 
         silhouette = silhouette_score(
-            X_processed[mask],
+            X_pca[mask],
             labels[mask]
         )
 
         davies_bouldin = davies_bouldin_score(
-            X_processed[mask],
+            X_pca[mask],
             labels[mask]
         )
 
         calinski_harabasz = calinski_harabasz_score(
-            X_processed[mask],
+            X_pca[mask],
             labels[mask]
         )
     else:
@@ -205,6 +210,8 @@ for eps in np.arange(0.3, 2.1, 0.1):
     })
 
 dbscan_results = pd.DataFrame(dbscan_results)
+
+print("\nDBSCAN Evaluation:")
 print(dbscan_results)
 
 #select dbscan parameters
@@ -228,17 +235,20 @@ if not valid_dbscan.empty:
         f"min_samples={best_min_samples}"
     )
 
+
 #final dbscan 
 dbscan = DBSCAN(
     eps = best_eps,
     min_samples= best_min_samples
 )
 
+
 dbscan_labels = dbscan.fit_predict(
-    X_processed
+    X_pca
 )
 
-df["dbcsan_cluster"] = dbscan_labels
+df["dbscan_cluster"] = dbscan_labels
+
 
 #inspect final db results 
 if "dbscan_cluster" in df.columns:
@@ -249,3 +259,35 @@ if "dbscan_cluster" in df.columns:
         .value_counts()
         .sort_index()
     )
+
+
+'''
+min_samples = 5
+
+# Find the nearest neighbors
+neighbors = NearestNeighbors(
+    n_neighbors=min_samples
+)
+
+neighbors.fit(X_processed)
+
+distances, indices = neighbors.kneighbors(X_processed)
+
+# Distance to the kth nearest neighbor for every point
+k_distances = distances[:, -1]
+
+# Sort distances from smallest to largest
+k_distances = np.sort(k_distances)
+
+# Plot
+plt.figure(figsize=(10, 6))
+
+plt.plot(k_distances)
+
+plt.xlabel("Data points sorted by distance")
+plt.ylabel(f"Distance to {min_samples}th nearest neighbor")
+plt.title("K-Distance Graph for DBSCAN")
+
+plt.grid()
+plt.show()
+'''
