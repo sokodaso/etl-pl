@@ -93,6 +93,15 @@ For chart-only development:
 python etl_pipeline.py --limit 10 --skip-youtube --skip-genius --skip-load
 ```
 
+Run the cluster API after a clustering result has been persisted:
+
+```bash
+uvicorn api:app --reload
+```
+
+The API provides `GET /clusters` for the active cluster summaries and
+`GET /clusters/{group_id}` for a cluster profile and its assigned songs.
+
 ## Files
 
 - `etl_pipeline.py`: orchestration entrypoint
