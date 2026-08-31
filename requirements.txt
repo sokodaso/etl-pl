@@ -8,3 +8,5 @@ SQLAlchemy
 joblib
 numpy
 scikit-learn
+fastapi
+uvicorn
