@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from functools import lru_cache
 from typing import Any, Optional
 
@@ -16,7 +17,7 @@ class RepresentativeSong(BaseModel):
     song_key: str
     title: str
     artist: str
-    chart_date: Optional[str] = None
+    chart_date: Optional[date] = None
     distance_to_centroid: float
 
 
@@ -30,7 +31,7 @@ class ClusterSummary(BaseModel):
 
 class ClusterSong(BaseModel):
     song_key: str
-    chart_date: Optional[str] = None
+    chart_date: Optional[date] = None
     title: str
     artist: str
 
