@@ -12,7 +12,6 @@ from etl.loader import load_song_week_stats
 from etl.transform import build_song_week_stats
 
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build weekly Billboard Hot 100 song metrics.")
     parser.add_argument("--chart", default=None, help="Billboard chart slug. Defaults to BILLBOARD_CHART or hot-100.")

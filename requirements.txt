@@ -5,3 +5,6 @@ lyricsgenius
 pandas
 PyMySQL
 SQLAlchemy
+joblib
+numpy
+scikit-learn
