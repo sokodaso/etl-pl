@@ -22,6 +22,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from etl.config import load_settings
+from etl.loader import prepare_for_sql
 
 NUMERIC_FEATURES = [
     "rank", "last_rank", "peak_rank", "weeks", "youtube_views", "youtube_likes",
@@ -347,8 +348,10 @@ def persist_result(result: ClusteringResult, engine: Any, artifact_dir: Path) ->
             active_group_ids = result.profiles["stable_group_id"].tolist()
             if active_group_ids:
                 connection.execute(update(groups).where(~groups.c.stable_group_id.in_(active_group_ids)).values(status="inactive"))
-            connection.execute(insert(profiles), result.profiles.to_dict("records"))
-            connection.execute(insert(assignments), result.assignments.to_dict("records"))
+            profile_records = prepare_for_sql(result.profiles).to_dict("records")
+            assignment_records = prepare_for_sql(result.assignments).to_dict("records")
+            connection.execute(insert(profiles), profile_records)
+            connection.execute(insert(assignments), assignment_records)
     except Exception:
         artifact_path.unlink(missing_ok=True)
         raise

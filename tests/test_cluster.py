@@ -99,3 +99,10 @@ def test_persist_result_promotes_new_run_and_writes_all_views(tmp_path):
         assert connection.execute(text("SELECT COUNT(*) FROM cluster_profiles")).scalar() == 2
         assert connection.execute(text("SELECT COUNT(*) FROM song_cluster_assignments")).scalar() == 5
         assert connection.execute(text("SELECT status FROM clustering_runs")).scalar() == "active"
+        noise_row = connection.execute(text("""
+            SELECT dbscan_label, stable_group_id
+            FROM song_cluster_assignments
+            WHERE is_noise = 1
+        """)).one()
+        assert noise_row.dbscan_label is None
+        assert noise_row.stable_group_id is None
